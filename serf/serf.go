@@ -1263,7 +1263,7 @@ func (s *Serf) handleUserEvent(eventMsg *messageUserEvent) bool {
 	if curTime > LamportTime(len(s.eventBuffer)) &&
 		eventMsg.LTime < curTime-LamportTime(len(s.eventBuffer)) {
 		s.logger.Printf(
-			"[WARN] serf: received old event %s from time %d (current: %d)",
+			"[DEBUG] serf: received old event %s from time %d (current: %d)",
 			eventMsg.Name,
 			eventMsg.LTime,
 			s.eventClock.Time())
