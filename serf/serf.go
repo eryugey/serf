@@ -648,14 +648,14 @@ func (s *Serf) Join(existing []string, ignoreOld bool) (int, error) {
 	if s.State() != SerfAlive {
 		return 0, fmt.Errorf("Serf can't Join after Leave or Shutdown")
 	}
-
-	// Hold the joinLock, this is to make eventJoinIgnore safe
-	s.joinLock.Lock()
-	defer s.joinLock.Unlock()
-
-	// Ignore any events from a potential join. This is safe since we hold
-	// the joinLock and nobody else can be doing a Join
 	if ignoreOld {
+		// Hold the joinLock, this is to make eventJoinIgnore safe
+		s.joinLock.Lock()
+		defer s.joinLock.Unlock()
+
+		// Ignore any events from a potential join. This is safe since we hold
+		// the joinLock and nobody else can be doing a Join
+
 		s.eventJoinIgnore.Store(true)
 		defer func() {
 			s.eventJoinIgnore.Store(false)
