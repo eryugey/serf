@@ -27,6 +27,17 @@ func init() {
 	}
 }
 
+// EventBufferFilterer is an interface that allows users to filter which
+// user events from the eventBuffer should be included in the LocalState
+// during Push-Pull state synchronization with other peers.
+//
+// The Filter method receives the current eventBuffer and should return
+// a filtered slice of BufferedUserEvents to be included in the state sync.
+// If the filter returns nil or an empty slice, no events will be synchronized.
+type EventBufferFilterer interface {
+	Filter(eventBuffer []*BufferedUserEvents) []*BufferedUserEvents
+}
+
 // Config is the configuration for creating a Serf instance.
 type Config struct {
 	// The name of this node. This must be unique in the cluster. If this
@@ -97,6 +108,13 @@ type Config struct {
 
 	// Optional user defined Coalescer for user events.
 	UserEventCoalescer Coalescer
+
+	// EventBufferFilter is an optional user-defined filter for selecting which
+	// user events to include in the LocalState during Push-Pull synchronization.
+	// If not set, all events in the eventBuffer will be included.
+	// This allows upper-layer applications to control which events should be
+	// synchronized to other peers.
+	EventBufferFilter EventBufferFilterer
 
 	// The settings below relate to Serf keeping track of recently
 	// failed/left nodes and attempting reconnects.

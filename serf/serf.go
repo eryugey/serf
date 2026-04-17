@@ -209,13 +209,15 @@ type nodeIntent struct {
 	LTime LamportTime
 }
 
-// userEvent is used to buffer events to prevent re-delivery
-type userEvent struct {
+// BufferedUserEvent is used to buffer events to prevent re-delivery.
+// It represents a single user event stored in the event buffer.
+type BufferedUserEvent struct {
 	Name    string
 	Payload []byte
 }
 
-func (ue *userEvent) Equals(other *userEvent) bool {
+// Equals checks if two BufferedUserEvent are equal.
+func (ue *BufferedUserEvent) Equals(other *BufferedUserEvent) bool {
 	if ue.Name != other.Name {
 		return false
 	}
@@ -225,11 +227,18 @@ func (ue *userEvent) Equals(other *userEvent) bool {
 	return true
 }
 
-// userEvents stores all the user events at a specific time
-type userEvents struct {
+// BufferedUserEvents stores all the user events at a specific Lamport time.
+// It is used in the event buffer for state synchronization.
+type BufferedUserEvents struct {
 	LTime  LamportTime
-	Events []userEvent
+	Events []BufferedUserEvent
 }
+
+// userEvent is an alias for backward compatibility with internal code.
+type userEvent = BufferedUserEvent
+
+// userEvents is an alias for backward compatibility with internal code.
+type userEvents = BufferedUserEvents
 
 // queries stores all the query ids at a specific time
 type queries struct {

@@ -249,3 +249,87 @@ func TestDelegate_BadData(t *testing.T) {
 	}()
 	d.NodeMeta(1)
 }
+
+// testEventFilter is a test implementation of EventBufferFilterer
+type testEventFilter struct {
+	filterFunc func([]*BufferedUserEvents) []*BufferedUserEvents
+}
+
+func (f *testEventFilter) Filter(events []*BufferedUserEvents) []*BufferedUserEvents {
+	if f.filterFunc == nil {
+		return events
+	}
+	return f.filterFunc(events)
+}
+
+func TestDelegate_LocalStateWithFilter(t *testing.T) {
+	ip1, returnFn1 := testutil.TakeIP()
+	defer returnFn1()
+
+	c := testConfig(t, ip1)
+	c.ProtocolVersion = 4
+
+	// Create a filter that only includes events with LTime > 100
+	c.EventBufferFilter = &testEventFilter{
+		filterFunc: func(events []*BufferedUserEvents) []*BufferedUserEvents {
+			var filtered []*BufferedUserEvents
+			for _, e := range events {
+				if e != nil && e.LTime > 100 {
+					filtered = append(filtered, e)
+				}
+			}
+			return filtered
+		},
+	}
+
+	s, err := Create(c)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer s.Shutdown()
+
+	d := &delegate{serf: s}
+
+	// Add some events to the buffer
+	s.eventLock.Lock()
+	s.eventBuffer[50] = &BufferedUserEvents{
+		LTime: 50,
+		Events: []BufferedUserEvent{
+			{Name: "event-at-time-50", Payload: []byte("data50")},
+		},
+	}
+	s.eventBuffer[150] = &BufferedUserEvents{
+		LTime: 150,
+		Events: []BufferedUserEvent{
+			{Name: "event-at-time-150", Payload: []byte("data150")},
+		},
+	}
+	s.eventLock.Unlock()
+
+	// Get local state
+	state := d.LocalState(false)
+	if state == nil {
+		t.Fatalf("LocalState returned nil")
+	}
+
+	// Decode and verify the filter was applied
+	var pp messagePushPull
+	if err := decodeMessage(state[1:], &pp); err != nil {
+		t.Fatalf("Failed to decode state: %v", err)
+	}
+
+	// Count non-nil events
+	var nonNilEvents int
+	for _, e := range pp.Events {
+		if e != nil {
+			nonNilEvents++
+			if e.LTime <= 100 {
+				t.Fatalf("Expected only events with LTime > 100, got LTime %d", e.LTime)
+			}
+		}
+	}
+
+	if nonNilEvents != 1 {
+		t.Fatalf("Expected 1 event after filtering, got %d", nonNilEvents)
+	}
+}

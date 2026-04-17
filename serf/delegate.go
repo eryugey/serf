@@ -179,13 +179,19 @@ func (d *delegate) LocalState(join bool) []byte {
 	d.serf.eventLock.RLock()
 	defer d.serf.eventLock.RUnlock()
 
+	// Get events to include - apply filter if configured
+	events := d.serf.eventBuffer
+	if d.serf.config.EventBufferFilter != nil {
+		events = d.serf.config.EventBufferFilter.Filter(d.serf.eventBuffer)
+	}
+
 	// Create the message to send
 	pp := messagePushPull{
 		LTime:        d.serf.clock.Time(),
 		StatusLTimes: make(map[string]LamportTime, len(d.serf.members)),
 		LeftMembers:  make([]string, 0, len(d.serf.leftMembers)),
 		EventLTime:   d.serf.eventClock.Time(),
-		Events:       d.serf.eventBuffer,
+		Events:       events,
 		QueryLTime:   d.serf.queryClock.Time(),
 	}
 
