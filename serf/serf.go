@@ -534,9 +534,11 @@ func (s *Serf) UserEvent(name string, payload []byte, coalesce bool) error {
 	// Process update locally
 	s.handleUserEvent(&msg)
 
-	s.eventBroadcasts.QueueBroadcast(&broadcast{
-		msg: raw,
-	})
+	if !s.config.SkipBroadcastIfAlone || s.NumNodes() > 1 {
+		s.eventBroadcasts.QueueBroadcast(&broadcast{
+			msg: raw,
+		})
+	}
 	return nil
 }
 

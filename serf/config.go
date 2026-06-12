@@ -116,6 +116,13 @@ type Config struct {
 	// synchronized to other peers.
 	EventBufferFilter EventBufferFilterer
 
+	// SkipBroadcastIfAlone skips queuing user event gossip broadcasts when
+	// this is the only node in the cluster. The event is still stored in the
+	// eventBuffer and delivered to the local EventCh. New members will only
+	// receive past events through push-pull synchronization (subject to
+	// EventBufferFilter). Defaults to false.
+	SkipBroadcastIfAlone bool
+
 	// The settings below relate to Serf keeping track of recently
 	// failed/left nodes and attempting reconnects.
 	//
